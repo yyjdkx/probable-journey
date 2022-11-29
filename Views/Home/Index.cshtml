@@ -1,0 +1,84 @@
+﻿@{
+    ViewData["Title"] = "";
+}
+
+<div class="text-center">
+
+</div>
+<html>
+    <body>
+
+<div id="map" style="width:100%;height:100vh;"></div>
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=8d41e4ac5151c7737e6a4fb12557f127&libraries=clusterer"></script>
+<div id="map" style="width:100%;height:600px;"></div>
+<script>
+    var mapContainer = document.getElementById('map'), // 지도를 표시할 div
+        mapOption = {
+            center: new kakao.maps.LatLng(35.146879, 129.058335), // 지도의 중심좌표: 부산광역시청
+            level: 7 // 지도의 확대 레벨
+        };
+    // 지도를 표시할 div와  지도 옵션으로  지도를 생성합니다
+    var map = new kakao.maps.Map(mapContainer, mapOption);
+
+    // 지도에 교통정보를 표시하도록 지도타입을 추가합니다
+    map.addOverlayMapTypeId(kakao.maps.MapTypeId.TRAFFIC);
+
+    // 지도에 지형정보를 표시하도록 지도타입을 추가합니다
+    map.addOverlayMapTypeId(kakao.maps.MapTypeId.TERRAIN);
+
+    // 마커 클러스터러를 생성한다
+    var clusterer = new kakao.maps.MarkerClusterer({
+        map: map, // 마커들을 클러스터로 관리하고 표시할 지도 객체
+        averageCenter: true, // 클러스터에 포함된 마커들의 평균 위치를 클러스터 마커 위치로 설정
+        minLevel: 10 // 클러스터 할 최소 지도 레벨
+    });
+
+    function displayNode(data) {
+        var markers = [];
+        for (let i = 0; i < data.length; i++) {
+            let item = data[i];
+            var markerPosition = new kakao.maps.LatLng(item.latitude, item.longitude);
+
+            // 마커를 생성한다
+            var marker = new kakao.maps.Marker({
+                position: markerPosition
+            });
+
+            // 마커가 지도 위에 표시되도록 설정한다
+            marker.setMap(map);
+            var iwContent = (` 기관명: ` + item.agency_name + `<br/> 주소: ` + item.address + `<br/> 전화번호: ` + item.phone_number + `<br/> 평일 영업시간: ` + item.weekday_oph + `<br/> 토요일 영업시간: ` + item.saturday_oph + `<br/> 공휴일 영업시간: ` + item.holiday_oph + '<br/>'); // 인포윈도우에 표춛될 내용
+
+            // 인포윈도우를 생성합니다
+            var infowindow = new kakao.maps.InfoWindow({
+                position: markerPosition,
+                content: `<div style="width:300px">${iwContent}</div>`
+            });
+            markers.push(marker);
+            // 이벤트 리스너로는 클로저를 만들어 등록합니다
+            kakao.maps.event.addListener(marker, 'mouseover', makeOverListener(map, marker, infowindow));
+            kakao.maps.event.addListener(marker, 'mouseout', makeOutListener(infowindow));
+        }
+        // 클러스터러에 마커들을 추가합니다
+        clusterer.addMarkers(markers);
+    }
+
+    fetch('https://sc1128.blob.core.windows.net/container1128/agencydb.json')
+        .then(response => response.json())
+        .then(displayNode)
+
+    // 인포윈도우를 표시하는 클로저를 만드는 함수입니다
+    function makeOverListener(map, marker, infowindow) {
+        return function () {
+            infowindow.open(map, marker);
+        };
+    }
+
+    // 인포윈도우를 닫는 클로저를 만드는 함수입니다
+    function makeOutListener(infowindow) {
+        return function () {
+            infowindow.close();
+        };
+    }
+</script>
+    </body>
+</html>
